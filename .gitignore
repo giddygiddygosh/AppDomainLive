@@ -45,3 +45,4 @@ backend/uploads/
 **/package-lock.json
 **/yarn.lock 
 "functions/config/serviceAccountKey.json" 
+"functions/config/serviceAccountKey.json" 
