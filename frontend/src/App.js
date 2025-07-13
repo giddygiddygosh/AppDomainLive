@@ -40,14 +40,17 @@ import CommissionReportPage from './components/reports/CommissionReportPage';
 // NEW IMPORT for MyPayslipsPage
 import MyPayslipsPage from './components/staffPortal/MyPayslipsPage';
 
+// NEW IMPORT for FinancialDashboardPage
+import FinancialDashboardPage from './components/dashboard/FinancialDashboardPage'; // <--- NEW IMPORT
+
 // --- Customer Portal Specific Imports ---
 import CustomerInvoicesPage from './components/customerPortal/CustomerInvoicesPage';
 import CustomerAppointmentsPage from './components/customerPortal/CustomerAppointmentsPage';
 import CustomerEmergencyPage from './components/customerPortal/CustomerEmergencyPage';
 
 // --- Job-related Imports ---
-import JobsPage from './components/jobs/JobsPage'; // Existing Job List Page
-import JobDetailsPage from './components/jobs/JobDetailsPage'; // <--- ADDED THIS IMPORT: Your new Job Details Page
+import JobsPage from './components/jobs/JobsPage';
+import JobDetailsPage from './components/jobs/JobDetailsPage';
 
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -184,8 +187,10 @@ function AppContent() {
 
                         {/* Jobs Page and Job Details Page */}
                         <Route path="/jobs" element={<PrivateRoute roles={['admin', 'manager', 'staff']}><JobsPage /></PrivateRoute>} />
-                        {/* NEW ROUTE FOR JOB DETAILS PAGE */}
-                        <Route path="/jobs/:jobId" element={<PrivateRoute roles={['admin', 'manager', 'staff', 'customer']}><JobDetailsPage /></PrivateRoute>} /> {/* <--- ADDED THIS ROUTE */}
+                        <Route path="/jobs/:jobId" element={<PrivateRoute roles={['admin', 'manager', 'staff', 'customer']}><JobDetailsPage /></PrivateRoute>} />
+
+                        {/* NEW ROUTE FOR FINANCIAL DASHBOARD */}
+                        <Route path="/financial-dashboard" element={<PrivateRoute roles={['admin', 'manager']}><FinancialDashboardPage /></PrivateRoute>} /> {/* <--- NEW ROUTE */}
 
                         {/* Default Route */}
                         <Route path="/" element={loading ? <div>Loading...</div> : <Navigate to={user ? getDefaultDashboardPath(user.role) : "/login"} replace />} />
@@ -197,8 +202,6 @@ function AppContent() {
 }
 
 function App() {
-    // Load your Stripe Publishable Key securely.
-    // Ensure REACT_APP_STRIPE_PUBLISHABLE_KEY is defined in your frontend/.env file.
     const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
     return (
@@ -208,7 +211,6 @@ function App() {
                     <CurrencyProvider>
                         <MapsApiProvider>
                             <DndProvider backend={HTML5Backend}>
-                                {/* Wrap your AppContent with Stripe's Elements provider */}
                                 <Elements stripe={stripePromise}>
                                     <AppContent />
                                 </Elements>

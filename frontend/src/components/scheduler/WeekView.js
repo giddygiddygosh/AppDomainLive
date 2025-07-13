@@ -11,7 +11,7 @@ const WeekView = ({ jobs, currentDate, onOpenDetails, staff, onJobUpdate }) => {
     const dragLeaveTimeoutRef = useRef(null); // Ref to store the timeout ID for dragLeave
 
     const handleDragStart = useCallback((e, jobId) => {
-        console.log("WeekView: DragStart initiated for jobId:", jobId); // Debugging: Check if this fires consistently
+        console.log("WeekView: DragStart initiated for jobId:", jobId);
         setIsDraggingJob(true); // Set dragging state immediately
 
         // Set the data payload for the drag operation
@@ -25,14 +25,14 @@ const WeekView = ({ jobs, currentDate, onOpenDetails, staff, onJobUpdate }) => {
 
         // Add an onDragEnd listener for additional cleanup or debugging
         // This is crucial to reset isDraggingJob even if the drag is aborted (e.g., released outside a drop target)
-        const handleDragEndCleanup = () => {
-            console.log("WeekView: DragEnd detected for jobId:", jobId); // CRITICAL DEBUG LOG
+        const cleanupDragEnd = () => {
+            console.log("WeekView: DragEnd detected for jobId:", jobId);
             setIsDraggingJob(false); // Ensure dragging state is reset on drag end
             // Clean up the event listener itself to prevent it from firing multiple times if re-attached
-            e.currentTarget.removeEventListener('dragend', handleDragEndCleanup);
+            e.target.removeEventListener('dragend', cleanupDragEnd);
         };
-        // Attach the dragend listener to the element that started the drag (e.currentTarget is the JobCard div)
-        e.currentTarget.addEventListener('dragend', handleDragEndCleanup);
+        // Attach the dragend listener to the element that started the drag (e.target is the JobCard div)
+        e.target.addEventListener('dragend', cleanupDragEnd);
 
     }, []); // No external dependencies for this useCallback, it's self-contained.
 
@@ -47,8 +47,8 @@ const WeekView = ({ jobs, currentDate, onOpenDetails, staff, onJobUpdate }) => {
     }, []);
 
     const handleDragEnter = useCallback((day) => {
-        // Corrected typo here: dragLeaveTimeoutRefRef -> dragLeaveTimeoutRef
-        if (dragLeaveTimeoutRef.current) { // THIS LINE WAS THE PROBLEM (Line 51)
+        // Clear any pending dragLeave timeout if the user re-enters/stays over a valid target
+        if (dragLeaveTimeoutRef.current) {
             clearTimeout(dragLeaveTimeoutRef.current);
             dragLeaveTimeoutRef.current = null;
         }
@@ -122,8 +122,8 @@ const WeekView = ({ jobs, currentDate, onOpenDetails, staff, onJobUpdate }) => {
             <div
                 key={job._id}
                 draggable="true" // Ensure this is explicitly true
-                onDragStart={onDragStart} // This handler is passed from the parent WeekView
-                onClick={onClick}
+                onDragStart={(e) => onDragStart(e, job._id)} // This handler is passed from the parent WeekView
+                onClick={onClick} // This is the original onClick that was passed
                 className={`p-2 bg-white rounded-lg shadow-md border-l-4
                             border-${jobStatusColor}-500 text-${jobStatusColor}-800 text-xs ${className}
                             z-20 // Ensure job cards are on top and draggable
@@ -170,7 +170,8 @@ const WeekView = ({ jobs, currentDate, onOpenDetails, staff, onJobUpdate }) => {
                                 <JobCard
                                     key={job._id}
                                     job={job}
-                                    onDragStart={(e) => handleDragStart(e, job._id)}
+                                    onDragStart={handleDragStart}
+                                    // Make sure this onClick includes stopPropagation if needed to prevent parent day click
                                     onClick={(e) => { e.stopPropagation(); onOpenDetails(job); }}
                                     isDraggingGlobal={isDraggingJob} // Pass the new state
                                 />

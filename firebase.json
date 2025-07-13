@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "function": "api"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -17,13 +21,17 @@
     {
       "source": "functions",
       "codebase": "default",
+      "runtime": "nodejs22",
       "ignore": [
         "node_modules",
         ".git",
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
-      ]
+      ],
+      "env": {
+        "DATABASE_URL": "mongodb+srv://clouduser:1234geek@cluster0.comidzl.mongodb.net/?retryWrites=true&w=majority"
+      }
     }
   ]
 }

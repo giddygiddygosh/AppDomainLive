@@ -1,4 +1,4 @@
-// C:\Users\darre\App\frontend\public\static\js\form-embed.js
+f// C:\Users\darre\App\frontend\public\static\js\form-embed.js
 
 (function() {
     // Helper function for checking emptiness, consistent with backend
@@ -31,7 +31,7 @@
                                 '</style>';
 
         try {
-            const apiBaseUrl = 'http://localhost:5004/api'; // Make sure this matches your backend API URL
+            const apiBaseUrl = '/api';
             const response = await fetch(`${apiBaseUrl}/public/forms/${formId}`);
             if (!response.ok) {
                 const errorData = await response.json();

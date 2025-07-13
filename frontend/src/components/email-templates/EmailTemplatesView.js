@@ -121,7 +121,8 @@ const EmailTemplatesView = () => {
     }, [editingTemplate, templateName, templateSubject, templateBody, headerImageFile, headerImageUrl, fetchTemplates]);
 
     return (
-        <div>
+        // Added a wrapping div with appropriate padding and max-width for better layout
+        <div className="p-8 bg-white rounded-xl shadow-lg max-w-4xl mx-auto">
             <header className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <Mail className="w-10 h-10 text-blue-600" />
@@ -135,7 +136,8 @@ const EmailTemplatesView = () => {
                 </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-lg p-4">
+            {/* The list container no longer needs its own internal padding if the parent handles it */}
+            <div className="bg-white rounded-xl shadow-lg"> {/* Removed p-4 here as outer div has p-8 */}
                 {loadingTemplates ? (
                     <Loader />
                 ) : (

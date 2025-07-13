@@ -1,10 +1,8 @@
 import axios from 'axios';
 
 // Determine the API base URL based on the environment
-// For local development, it's http://localhost:5004/api
-// For production (Firebase Functions), it will be your deployed function URL
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-    ? 'https://YOUR_PRODUCTION_BACKEND_URL.cloudfunctions.net/api' // Replace with your actual deployed Firebase Function URL
+    ? 'https://api-asjhbgjbha-uc.a.run.app/api' // <--- YOUR ACTUAL DEPLOYED FUNCTION URL
     : 'http://localhost:5004/api'; // Your local backend server
 
 const api = axios.create({
@@ -34,14 +32,12 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
         // If the error is 401 Unauthorized and it's not a retry already
-        if (error.response.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true; // Mark as retried to prevent infinite loops
 
             // Attempt to refresh token or log out user
-            // For simplicity, we'll just log out the user if 401 occurs
             console.error('Authentication token expired or invalid. Logging out...');
             localStorage.removeItem('token');
-            // Redirect to login page or force a page reload to trigger AuthContext re-check
             window.location.href = '/login'; // Adjust to your login route
         }
         return Promise.reject(error);

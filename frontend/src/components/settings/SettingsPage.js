@@ -513,6 +513,13 @@ const SettingsPage = () => {
         }
     };
 
+    const handleLanguageChange = (e) => {
+        const newLang = e.target.value;
+        i18n.changeLanguage(newLang);
+        // Optionally save to backend if user preference is persistent
+        // api.put('/auth/profile', { language: newLang }); 
+    };
+
     if (loading || authLoading || currencyLoading) {
         return (<div className="flex items-center justify-center min-h-[calc(100vh-80px)]"><Loader /></div>);
     }
@@ -621,15 +628,170 @@ const SettingsPage = () => {
             )}
 
             {activeTab === 'currency' && (
-                <form onSubmit={handleSaveCompanySettings} className="p-6 border rounded-lg bg-gray-50/80 space-y-6">{/* ... currency form ... */}</form>
+                <form onSubmit={handleSaveCompanySettings} className="p-6 border rounded-lg bg-gray-50/80 space-y-6">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3">{t('settingsPage.currencySettingsSection')}</h3>
+                    <ModernSelect
+                        label={t('settingsPage.defaultCurrencyCodeLabel')}
+                        name="defaultCurrencyCode"
+                        value={localSettings.defaultCurrencyCode}
+                        onChange={handleCurrencyChange}
+                        options={currencyOptions}
+                        required
+                        helpText={t('settingsPage.defaultCurrencyCodeHelpText')}
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <ModernInput
+                            label={t('settingsPage.currencySymbolLabel')}
+                            name="defaultCurrencySymbol"
+                            value={localSettings.defaultCurrencySymbol}
+                            onChange={handleCurrencyChange}
+                            helpText={t('settingsPage.currencySymbolHelpText')}
+                        />
+                        <ModernInput
+                            label={t('settingsPage.decimalPlacesLabel')}
+                            name="defaultCurrencyDecimalPlaces"
+                            type="number"
+                            value={localSettings.defaultCurrencyDecimalPlaces}
+                            onChange={handleCurrencyChange}
+                            min="0"
+                            max="4"
+                            helpText={t('settingsPage.decimalPlacesHelpText')}
+                        />
+                        <ModernInput
+                            label={t('settingsPage.thousandSeparatorLabel')}
+                            name="defaultCurrencyThousandSeparator"
+                            value={localSettings.defaultCurrencyThousandSeparator}
+                            onChange={handleCurrencyChange}
+                            maxLength="1"
+                            helpText={t('settingsPage.thousandSeparatorHelpText')}
+                        />
+                        <ModernInput
+                            label={t('settingsPage.decimalSeparatorLabel')}
+                            name="defaultCurrencyDecimalSeparator"
+                            value={localSettings.defaultCurrencyDecimalSeparator}
+                            onChange={handleCurrencyChange}
+                            maxLength="1"
+                            helpText={t('settingsPage.decimalSeparatorHelpText')}
+                        />
+                    </div>
+                    <ModernInput
+                        label={t('settingsPage.formatTemplateLabel')}
+                        name="formatTemplate"
+                        value={localSettings.formatTemplate}
+                        onChange={handleCurrencyChange}
+                        helpText={t('settingsPage.formatTemplateHelpText')}
+                    />
+                    <div className="flex justify-end mt-6">
+                        <button type="submit" className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={saving}>
+                            {saving ? t('common.saving') : t('common.saveChanges')}
+                        </button>
+                    </div>
+                </form>
             )}
 
             {activeTab === 'my-account' && (
-                <div className="space-y-8">{/* ... my account form ... */}</div>
+                <div className="space-y-8">
+                    <form onSubmit={handleSaveProfile} className="p-6 border rounded-lg bg-gray-50/80 space-y-6">
+                        <h3 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3">{t('settingsPage.myProfileSection')}</h3>
+                        <ModernInput
+                            label={t('settingsPage.contactPersonNameLabel')}
+                            name="contactPersonName"
+                            value={userProfile.contactPersonName}
+                            onChange={handleUserProfileChange}
+                            required
+                        />
+                        <ModernInput
+                            label={t('settingsPage.emailLabel')}
+                            name="email"
+                            value={userProfile.email}
+                            type="email"
+                            disabled // Email is managed by Firebase, display only
+                            helpText={t('settingsPage.emailHelpText')}
+                        />
+                        <div className="flex justify-end mt-6">
+                            <button type="submit" className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={saving}>
+                                {saving ? t('common.saving') : t('common.saveChanges')}
+                            </button>
+                        </div>
+                    </form>
+
+                    <form onSubmit={handleChangeEmail} className="p-6 border rounded-lg bg-gray-50/80 space-y-6">
+                        <h3 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3">{t('settingsPage.changeEmailSection')}</h3>
+                        <ModernInput
+                            label={t('settingsPage.newEmailLabel')}
+                            name="newEmail"
+                            value={userProfile.newEmail}
+                            onChange={handleUserProfileChange}
+                            type="email"
+                            required
+                        />
+                        <ModernInput
+                            label={t('settingsPage.currentPasswordLabel')}
+                            name="currentPassword"
+                            value={userProfile.currentPassword}
+                            onChange={handleUserProfileChange}
+                            type="password"
+                            required
+                        />
+                        <div className="flex justify-end mt-6">
+                            <button type="submit" className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={saving}>
+                                {saving ? t('common.saving') : t('settingsPage.changeEmailButton')}
+                            </button>
+                        </div>
+                    </form>
+
+                    <form onSubmit={handleChangePassword} className="p-6 border rounded-lg bg-gray-50/80 space-y-6">
+                        <h3 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3">{t('settingsPage.changePasswordSection')}</h3>
+                        <ModernInput
+                            label={t('settingsPage.currentPasswordLabel')}
+                            name="currentPassword"
+                            value={userProfile.currentPassword}
+                            onChange={handleUserProfileChange}
+                            type="password"
+                            required
+                        />
+                        <ModernInput
+                            label={t('settingsPage.newPasswordLabel')}
+                            name="newPassword"
+                            value={userProfile.newPassword}
+                            onChange={handleUserProfileChange}
+                            type="password"
+                            required
+                        />
+                        <ModernInput
+                            label={t('settingsPage.confirmNewPasswordLabel')}
+                            name="confirmNewPassword"
+                            value={userProfile.confirmNewPassword}
+                            onChange={handleUserProfileChange}
+                            type="password"
+                            required
+                        />
+                        <div className="flex justify-end mt-6">
+                            <button type="submit" className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={saving}>
+                                {saving ? t('common.saving') : t('settingsPage.changePasswordButton')}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             )}
 
             {activeTab === 'language' && (
-                <div className="p-6 border rounded-lg bg-gray-50/80 space-y-6">{/* ... language form ... */}</div>
+                <div className="p-6 border rounded-lg bg-gray-50/80 space-y-6">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3">{t('settingsPage.languagePreferencesSection')}</h3>
+                    <ModernSelect
+                        label={t('settingsPage.selectLanguageLabel')}
+                        name="language"
+                        value={i18n.language}
+                        onChange={handleLanguageChange}
+                        options={[
+                            { value: 'en', label: 'English' },
+                            { value: 'es', label: 'Español' },
+                            { value: 'fr', label: 'Français' },
+                            { value: 'de', label: 'Deutsch' },
+                        ]}
+                        helpText={t('settingsPage.selectLanguageHelpText')}
+                    />
+                </div>
             )}
         </div>
     );

@@ -1,32 +1,63 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+// ✅ ADDED: This line loads your .env file for local development/testing.
+require('dotenv').config();
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
-const logger = require("firebase-functions/logger");
+const functions = require("firebase-functions");
+const express = require('express');
+const connectDB = require('./config/db');
+const cors = require('cors');
+const admin = require('firebase-admin');
+const path = require('path');
+const morgan = require('morgan'); // ✅ CORRECTED: Properly require the morgan package
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+// Initialize Firebase Admin SDK
+admin.initializeApp();
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+// Connect to your MongoDB database
+connectDB();
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+const app = express();
+
+// Middleware
+app.use(morgan('dev')); // ✅ RE-ENABLED: Logging is useful for debugging
+
+// Use a specific origin for better security
+app.use(cors({ origin: 'https://finalproject-35af4.web.app' }));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Note: This static path for '/uploads' will only work for temporary files
+// written to the /tmp directory in the Cloud Functions environment.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// API Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/customers', require('./routes/customerRoutes'));
+app.use('/api/leads', require('./routes/leadRoutes'));
+app.use('/api/forms', require('./routes/formRoutes'));
+app.use('/api/settings', require('./routes/settingsRoutes'));
+app.use('/api/uploads', require('./routes/uploadRoutes'));
+app.use('/api/staff', require('./routes/staffRoutes'));
+app.use('/api/jobs', require('./routes/jobRoutes'));
+app.use('/api/stock', require('./routes/stockRoutes'));
+app.use('/api/email-templates', require('./routes/emailTemplateRoutes'));
+app.use('/api/invoices', require('./routes/invoiceRoutes'));
+app.use('/api/daily-time', require('./routes/dailyTimeRoutes'));
+app.use('/api/payroll', require('./routes/payrollRoutes'));
+app.use('/api/public', require('./routes/publicRoutes'));
+app.use('/api/customer-portal', require('./routes/customerPortalRoutes'));
+app.use('/api/mail', require('./routes/mailRoutes'));
+app.use('/api/routes', require('./routes/routePlannerRoutes'));
+app.use('/api/reports', require('./routes/commissionReportRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/stripe', require('./routes/stripeRoutes'));
+app.use('/api/quickbooks', require('./routes/quickbooksRoutes'));
+
+// Home route for API testing
+app.get('/', (req, res) => {
+    res.send('API is running...');
+});
+
+// Export the Express app as a Cloud Function
+exports.api = functions.https.onRequest(app);
+

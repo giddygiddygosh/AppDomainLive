@@ -300,6 +300,3 @@ const SchedulerView = (props) => {
 };
 
 export default SchedulerView;
-
-
-

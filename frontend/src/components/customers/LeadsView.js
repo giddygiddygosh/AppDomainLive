@@ -1,7 +1,7 @@
 // src/views/LeadsView.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../utils/api';
-import Loader from '../common/Loader';
+import Loader from '../common/Loader'; // Keep this import if Loader is used elsewhere in LeadsView (e.g., initial page load)
 import ConfirmationModal from '../common/ConfirmationModal';
 import AddContactModal from '../common/AddContactModal';
 import ModernInput from '../common/ModernInput';
@@ -9,11 +9,13 @@ import ModernSelect from '../common/ModernSelect';
 import { toast } from 'react-toastify';
 import { useMapsApi } from '../../App';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const LeadsView = () => {
     const { isMapsLoaded, isMapsLoadError } = useMapsApi();
     const location = useLocation();
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     const [leads, setLeads] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -24,9 +26,14 @@ const LeadsView = () => {
     const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
     const [actionToConfirm, setActionToConfirm] = useState(null);
     const [leadToDelete, setLeadToDelete] = useState(null);
-    const [editingLeadStatusId, setEditingLeadStatusId] = useState(null);
+    const [editingLeadStatusId, setEditingLeadStatusId] = useState(null); // State to track which lead's status is being edited
 
-    // === NEW STATE: A trigger for re-fetching ===
+    const [pagination, setPagination] = useState({
+        totalCount: 0,
+        currentPage: 1,
+        totalPages: 1,
+    });
+
     const [reFetchTrigger, setReFetchTrigger] = useState(0);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -36,7 +43,7 @@ const LeadsView = () => {
     const [filterStatus, setFilterStatus] = useState(
         location.pathname === '/quotes' ? 'New Quote Request' : ''
     );
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPageFilter, setCurrentPageFilter] = useState(1);
     const [leadsPerPage] = useState(10);
 
     const leadStatusOptions = [
@@ -64,14 +71,22 @@ const LeadsView = () => {
         setError(null);
         try {
             const params = {
-                page: currentPage,
+                page: currentPageFilter,
                 limit: leadsPerPage,
-                ...(searchTerm && { searchTerm }),
+                ...(searchTerm && { search: searchTerm }),
                 ...(filterSource && { source: filterSource }),
                 ...(filterStatus && { status: filterStatus }),
             };
+            
             const res = await api.get('/leads', { params });
-            setLeads(res.data);
+            setLeads(res.data.leads || []);
+            
+            setPagination({
+                totalCount: res.data.totalCount || 0,
+                currentPage: res.data.currentPage || 1,
+                totalPages: res.data.totalPages || 1,
+            });
+
             setSelectedLeadIds([]);
         } catch (err) {
             console.error('Error fetching leads:', err.response?.data || err.message);
@@ -79,14 +94,12 @@ const LeadsView = () => {
         } finally {
             setLoading(false);
         }
-    }, [currentPage, leadsPerPage, searchTerm, filterSource, filterStatus]);
+    }, [currentPageFilter, leadsPerPage, searchTerm, filterSource, filterStatus]);
 
-    // Initial fetch and re-fetch when filters/pagination change, OR reFetchTrigger changes
     useEffect(() => {
         fetchLeads();
-    }, [fetchLeads, reFetchTrigger]); // === ADD reFetchTrigger here ===
+    }, [fetchLeads, reFetchTrigger]);
 
-    // Effect to adjust filters based on the current URL path (/leads vs /quotes)
     useEffect(() => {
         if (location.pathname === '/quotes') {
             setFilterSource('Website Quote Form');
@@ -95,21 +108,15 @@ const LeadsView = () => {
             setFilterSource('');
             setFilterStatus('');
         }
-        setCurrentPage(1);
-        // Do NOT trigger reFetchTrigger here based on path change, as fetchLeads already depends on filters.
-        // This useEffect handles filter changes that themselves drive fetchLeads.
+        setCurrentPageFilter(1);
     }, [location.pathname]);
 
-    // NEW EFFECT: Listen for navigation state from QuoteRequestPage
     useEffect(() => {
         if (location.state?.newLeadCreated) {
             toast.success('New Quote Request has been added!');
-            // === Trigger the re-fetch explicitly ===
             setReFetchTrigger(prev => prev + 1);
             
-            // Clear the state to prevent re-fetching if user navigates away and back
-            // and to prevent endless toasts on refresh
-            navigate(location.pathname, { replace: true, state: {} }); 
+            navigate(location.pathname, { replace: true, state: {} });
         }
     }, [location.state, navigate, location.pathname]);
 
@@ -118,7 +125,6 @@ const LeadsView = () => {
         toast.success(`Lead ${selectedLeadForAction ? 'updated' : 'added'} successfully!`);
         setIsAddContactModalOpen(false);
         setSelectedLeadForAction(null);
-        // === Trigger the re-fetch explicitly for Add/Edit Contact Modal ===
         setReFetchTrigger(prev => prev + 1);
     };
 
@@ -156,11 +162,11 @@ const LeadsView = () => {
                 await handleConvertClick(leadToConvert);
             }
         } else {
-            setEditingLeadStatusId(leadId);
+            // Set editing status ID to show a visual cue (e.g., disable the select) if needed
+            setEditingLeadStatusId(leadId); 
             try {
                 await api.put(`/leads/${leadId}`, { leadStatus: newStatus });
                 toast.success(`Lead status updated to ${newStatus}.`);
-                // Optimistically update the UI without full re-fetch for status change
                 setLeads(prevLeads =>
                     prevLeads.map(lead =>
                         lead._id === leadId ? { ...lead, leadStatus: newStatus } : lead
@@ -171,7 +177,8 @@ const LeadsView = () => {
                 setError(err.response?.data?.message || 'Failed to update lead status.');
                 toast.error(err.response?.data?.message || 'Failed to update lead status.');
             } finally {
-                setEditingLeadStatusId(null);
+                // Clear editing status ID regardless of success or failure
+                setEditingLeadStatusId(null); 
             }
         }
     };
@@ -214,7 +221,6 @@ const LeadsView = () => {
                 const res = await api.post(`/leads/${selectedLeadForAction._id}/convert-to-customer`);
                 toast.success(res.data.message);
             }
-            // === Trigger the re-fetch explicitly for all confirmable actions ===
             setReFetchTrigger(prev => prev + 1);
         } catch (err) {
             console.error(`Error ${actionToConfirm}ing lead(s):`, err);
@@ -248,7 +254,7 @@ const LeadsView = () => {
             case 'Qualified':
                 return 'bg-green-100 text-green-800';
             case 'Unqualified':
-            case 'Converted': // If a converted lead is still in Leads view, style it.
+            case 'Converted':
                 return 'bg-teal-100 text-teal-800';
             default:
                 return 'bg-gray-100 text-gray-800';
@@ -334,7 +340,7 @@ const LeadsView = () => {
                                 <th scope="col" className="px-6 py-3">Company Name</th>
                                 <th scope="col" className="px-6 py-3">Email</th>
                                 <th scope="col" className="px-6 py-3">Phone</th>
-                                <th scope="col" className="px-6 py-3">Status</th>
+                                <th scope="col" className="px-6 py-3 min-w-[140px]">Status</th>
                                 <th scope="col" className="px-6 py-3">Source</th>
                                 <th scope="col" className="px-6 py-3">Sales Person</th>
                                 <th scope="col" className="px-6 py-3">Commission Earned</th>
@@ -365,20 +371,16 @@ const LeadsView = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {getMasterContact(lead.phone, 'phone') || 'N/A'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4 min-w-[140px]">
                                         <div className="relative">
                                             <ModernSelect
                                                 name="leadStatus"
                                                 value={lead.leadStatus}
                                                 onChange={(e) => handleStatusChange(lead._id, e.target.value)}
                                                 options={leadStatusOptions.filter(o => o.value !== '' && o.value !== 'Converted')}
-                                                disabled={editingLeadStatusId === lead._id || loading}
+                                                disabled={editingLeadStatusId === lead._id || loading} // Select will be disabled while an update is in progress
                                             />
-                                            {editingLeadStatusId === lead._id && (
-                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-500 animate-spin">
-                                                    <Loader size={16} />
-                                                </span>
-                                            )}
+                                            {/* Removed the loading overlay specific to status update here */}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -406,23 +408,48 @@ const LeadsView = () => {
                                                 className="font-medium text-blue-600 hover:text-blue-900"
                                                 title="Edit Lead"
                                             >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(lead)}
-                                                className="font-medium text-red-600 hover:text-red-900"
-                                                title="Delete Lead"
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(lead)}
+                                                    className="font-medium text-red-600 hover:text-red-900"
+                                                    title="Delete Lead"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                         </tbody>
                     </table>
                 </div>
             )}
+
+            {/* Pagination Controls */}
+            {!loading && leads.length > 0 && (
+                <div className="flex justify-between items-center mt-6 px-4 py-2 bg-white rounded-lg shadow-md">
+                    <div>
+                        Showing {(pagination.currentPage - 1) * leadsPerPage + 1} to {Math.min(pagination.currentPage * leadsPerPage, pagination.totalCount)} of {pagination.totalCount} results
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        {/* Make sure to import ChevronLeftIcon and ChevronRightIcon from @heroicons/react/24/outline */}
+                        {/* import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'; */}
+                        <button onClick={() => setCurrentPageFilter(prev => prev - 1)} disabled={pagination.currentPage <= 1} className="p-1 rounded-full text-gray-600 hover:bg-gray-200 disabled:opacity-50">
+                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                            </svg>
+                        </button>
+                        <span className="text-sm font-medium text-gray-700">{pagination.currentPage} / {pagination.totalPages}</span>
+                        <button onClick={() => setCurrentPageFilter(prev => prev + 1)} disabled={pagination.currentPage >= pagination.totalPages} className="p-1 rounded-full text-gray-600 hover:bg-gray-200 disabled:opacity-50">
+                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
 
             {isAddContactModalOpen && (
                 <AddContactModal
