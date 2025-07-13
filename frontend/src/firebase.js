@@ -8,7 +8,7 @@ import { getAuth } from "firebase/auth"; // Specifically for Firebase Authentica
 
 // Your web app's Firebase configuration from .env variables
 const firebaseConfig = {
-  apiKey: "AIzaSyA7GzgMWiNsyBY-cQOQ8aCo2oizn4768Ck",
+  apiKey: "PUT_GOOGLE_API KEY_HERE",
   authDomain: "finalproject-35af4.firebaseapp.com",
   projectId: "finalproject-35af4",
   storageBucket: "finalproject-35af4.firebasestorage.app",
