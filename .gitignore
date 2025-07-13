@@ -44,3 +44,4 @@ backend/uploads/
 # Generally, it's better to manage them at the root, but including for completeness
 **/package-lock.json
 **/yarn.lock 
+"functions/config/serviceAccountKey.json" 
